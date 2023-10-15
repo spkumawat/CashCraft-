@@ -1,6 +1,7 @@
 #include <iostream>
-#include <iomanip> // Include the iomanip library for formatting
+#include <iomanip>
 #include <string>
+#include <stdexcept>
 
 using namespace std;
 
@@ -29,9 +30,9 @@ public:
     virtual void deposit(double amount) = 0;
     virtual void withdraw(double amount) = 0;
     virtual void display() const = 0;
-    virtual void calculateInterest() {} // Virtual function for interest calculation
+    virtual void calculateInterest() {}
 
-    virtual ~Account() {} // Virtual destructor for proper cleanup
+    virtual ~Account() {}
 };
 
 class SavingsAccount : public Account {
@@ -55,7 +56,7 @@ public:
         if (balance >= amount) {
             balance -= amount;
         } else {
-            cout << "Insufficient balance." << endl;
+            throw invalid_argument("Insufficient balance.");
         }
     }
 
@@ -79,7 +80,7 @@ public:
         if (balance >= amount) {
             balance -= amount;
         } else {
-            cout << "Insufficient balance." << endl;
+            throw invalid_argument("Insufficient balance.");
         }
     }
 
@@ -95,51 +96,69 @@ int main() {
     double initialBalance, interestRate, withdrawalAmount = 0;
     string accountType, username;
 
-    cout << "Enter Username: ";
-    cin >> username;
+    try {
+        cout << "Enter Username: ";
+        cin >> username;
 
-    cout << "\nEnter Account Number: ";
-    cin >> accNumber;
+        cout << "\nEnter Account Number: ";
+        cin >> accNumber;
 
-    cout << "\nEnter Initial Balance: $";
-    cin >> initialBalance;
-
-    if (initialBalance < 100) {
-        cout << "Minimum initial balance required is 100 rupees." << endl;
-        return 1;
-    }
-
-    cout << "\nEnter Account Type (S/C): ";
-    cin >> accountType;
-
-    Account* account;
-
-    if (accountType == "S" || accountType == "s") {
-        cout << "\nEnter Interest Rate (%): ";
-        cin >> interestRate;
-        account = new SavingsAccount(accNumber, initialBalance, interestRate, username);
-        account->calculateInterest(); // Calculate and add interest
-        cout << "\nSavings Account Details:" << endl;
-        account->display(); // Display updated account information after interest calculation
-    } else if (accountType == "C" || accountType == "c") {
-        cout << "\nEnter Withdrawal Amount: $";
-        cin >> withdrawalAmount;
-
-        if (withdrawalAmount > initialBalance - 100) {
-            cout << "Insufficient balance for withdrawal." << endl;
-            return 1;
+        if (cin.fail() || accNumber < 0) {
+            throw invalid_argument("Invalid account number. Please enter a positive integer.");
         }
 
-        account = new CurrentAccount(accNumber, initialBalance, username);
-        account->withdraw(withdrawalAmount); // Withdraw from the current account
-        cout << "\nCurrent Account Details:" << endl;
-        account->display(); // Display updated account information after withdrawal
-    } else {
-        cout << "Invalid account type." << endl;
+        cout << "\nEnter Initial Balance: $";
+        cin >> initialBalance;
+
+        if (cin.fail() || initialBalance < 100) {
+            throw invalid_argument("Minimum initial balance required is 100 rupees.");
+        }
+
+        cout << "\nEnter Account Type (S/C): ";
+        cin >> accountType;
+
+        if (accountType != "S" && accountType != "s" && accountType != "C" && accountType != "c") {
+            throw invalid_argument("Invalid account type. Please enter 'S' or 'C'.");
+        }
+
+        Account* account;
+
+        if (accountType == "S" || accountType == "s") {
+            cout << "\nEnter Interest Rate (%): ";
+            cin >> interestRate;
+
+            if (cin.fail() || interestRate < 0) {
+                throw invalid_argument("Invalid interest rate. Please enter a non-negative number.");
+            }
+
+            account = new SavingsAccount(accNumber, initialBalance, interestRate, username);
+            account->calculateInterest();
+            cout << "\nSavings Account Details:" << endl;
+            account->display();
+        } else if (accountType == "C" || accountType == "c") {
+            cout << "\nEnter Withdrawal Amount: $";
+            cin >> withdrawalAmount;
+
+            if (cin.fail() || withdrawalAmount <= 0) {
+                throw invalid_argument("Invalid withdrawal amount. Please enter a positive number.");
+            }
+
+            account = new CurrentAccount(accNumber, initialBalance, username);
+            account->withdraw(withdrawalAmount);
+            cout << "\nCurrent Account Details:" << endl;
+            account->display();
+        } else {
+            throw invalid_argument("Invalid account type.");
+        }
+
+        delete account;
+    } catch (const invalid_argument& e) {
+        cerr << "Error: " << e.what() << endl;
+        return 1;
+    } catch (...) {
+        cerr << "Unknown error occurred." << endl;
         return 1;
     }
-
-    delete account; // Free memory
 
     return 0;
 }
